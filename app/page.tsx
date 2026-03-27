@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSession, signIn, signOut } from "next-auth/react";
-import { User, Lock, Moon, Sun, ArrowRight, UserPlus, LogIn, LayoutDashboard, Users, PlusCircle, Code, FileText, Upload, CheckCircle, XCircle, Send, ArrowRightLeft, Loader2, Palette, Trash2, UserMinus, Globe, Wrench, ChevronRight, AlertTriangle } from 'lucide-react';
+import { User, Lock, Moon, Sun, ArrowRight, UserPlus, LogIn, LayoutDashboard, Users, PlusCircle, Code, FileText, Upload, CheckCircle, XCircle, Send, ArrowRightLeft, Loader2, Palette, Trash2, UserMinus, Globe, Wrench, ChevronRight, AlertTriangle,Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+
 
 type ThemeKey = 'ocean' | 'fiery' | 'zen';
 
@@ -226,6 +227,7 @@ const SupervisorDashboard = ({ isDarkMode, theme, session, showDialog }: any) =>
   const [myMigrationCode, setMyMigrationCode] = useState<string>("Loading...");
   const [isLoading, setIsLoading] = useState(true);
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   const fetchStudents = async () => {
     const res = await fetch(`/api/dashboard/supervisor?id=${(session?.user as any)?.id}`);
@@ -268,6 +270,49 @@ const SupervisorDashboard = ({ isDarkMode, theme, session, showDialog }: any) =>
         setSelectedStudent(null); fetchStudents();
       }
     });
+  };
+
+  // ── UPDATED: opens report in new tab, browser print dialog saves as PDF ──
+ const handleExportPDF = async () => {
+    setIsExporting(true);
+    try {
+      const id   = (session?.user as any)?.id;
+      const name = session?.user?.name || 'Supervisor';
+      
+      // Keeps the exact same API route
+      const response = await fetch(`/api/export-pdf?id=${id}&name=${encodeURIComponent(name)}`);
+      
+      if (!response.ok) {
+        throw new Error(`Export failed. Server responded with status: ${response.status}`);
+      }
+      
+      const blob = await response.blob();
+      
+      // Failsafe check
+      if (blob.size === 0) {
+        throw new Error('Received an empty file from the server.');
+      }
+      
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      
+      // CHANGED HERE: We just save the incoming blob as an .xlsx file instead of .pdf
+      a.download = `fyp-report-${name.replace(/\s+/g, '-')}.xlsx`; 
+      
+      document.body.appendChild(a);
+      a.click();
+      
+      // Cleanup
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+    } catch (err: any) {
+      console.error("Export Download Error:", err);
+      showDialog({ title: 'Export Failed', message: err.message || 'An unexpected error occurred.' });
+    } finally {
+      setTimeout(() => setIsExporting(false), 1000);
+    }
   };
 
   if (isLoading) return <div className="flex items-center justify-center min-h-[80vh]"><Loader2 className={`animate-spin ${theme.text}`} size={40}/></div>;
@@ -324,10 +369,43 @@ const SupervisorDashboard = ({ isDarkMode, theme, session, showDialog }: any) =>
 
       <GlassCard isDarkMode={isDarkMode} className="w-full flex justify-between items-center p-6 px-8">
         <div>
-          <h2 className="text-2xl font-extrabold tracking-tight flex items-center gap-3"><div className={`p-2 rounded-xl ${theme.lightBg} ${theme.text} transition-colors duration-500`}><LayoutDashboard size={20}/></div> Supervisor Panel</h2>
-          <p className="font-medium opacity-60 mt-2 flex items-center gap-2">Welcome, {session?.user?.name} <span className="opacity-40 text-sm">|</span> Your Code: <span className={`font-mono px-2 py-0.5 rounded-md ${theme.lightBg} ${theme.text}`}>{myMigrationCode}</span></p>
+          <h2 className="text-2xl font-extrabold tracking-tight flex items-center gap-3">
+            <div className={`p-2 rounded-xl ${theme.lightBg} ${theme.text} transition-colors duration-500`}>
+              <LayoutDashboard size={20} />
+            </div>
+            Supervisor Panel
+          </h2>
+          <p className="font-medium opacity-60 mt-2 flex items-center gap-2">
+            Welcome, {session?.user?.name}
+            <span className="opacity-40 text-sm">|</span>
+            Your Code:
+            <span className={`font-mono px-2 py-0.5 rounded-md ${theme.lightBg} ${theme.text}`}>
+              {myMigrationCode}
+            </span>
+          </p>
         </div>
-        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => signOut({ redirect: false })} className={`bg-red-500/10 hover:bg-red-500 ${isDarkMode ? 'text-red-400' : 'text-red-600'} hover:text-white px-6 py-2.5 rounded-2xl transition-all font-bold flex items-center gap-2`}><LogIn size={20} className="rotate-180" /> Logout</motion.button>
+
+        <div className="flex items-center gap-3">
+          <motion.button
+            whileHover={{ scale: isExporting ? 1 : 1.05 }}
+            whileTap={{ scale: isExporting ? 1 : 0.95 }}
+            onClick={handleExportPDF}
+            disabled={isExporting}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl font-bold transition-all ${isExporting ? 'opacity-60 cursor-not-allowed' : 'hover:opacity-90'} ${theme.bg} text-white shadow-md`}
+          >
+            {isExporting ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
+            {isExporting ? 'Downloading...' : 'Export Excel'}
+          </motion.button>
+
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => signOut({ redirect: false })}
+            className={`bg-red-500/10 hover:bg-red-500 ${isDarkMode ? 'text-red-400' : 'text-red-600'} hover:text-white px-6 py-2.5 rounded-2xl transition-all font-bold flex items-center gap-2`}
+          >
+            <LogIn size={20} className="rotate-180" /> Logout
+          </motion.button>
+        </div>
       </GlassCard>
 
       <GlassCard isDarkMode={isDarkMode} className="flex-1 p-8">
@@ -405,17 +483,14 @@ const StudentDashboard = ({ isDarkMode, theme, session, showDialog }: any) => {
   const me = data?.student;
   const supervisor = data?.supervisor;
   const isUnassigned = !me?.supervisorId || me?.status === 'Unassigned';
-  
-  // NEW: Determine if the student is currently allowed to submit their project details
   const canSubmit = me?.status === 'Pending' || me?.status === 'Rejected';
 
   const handleSubmitProject = async (e: any) => {
     e.preventDefault();
-    if (!canSubmit) return; // Failsafe
+    if (!canSubmit) return;
     
     let pdfUrl = me?.pdfUrl || '';
 
-    // NEW: Validation Check - Stop submission if no file is present
     if (!file && !pdfUrl) {
       showDialog({ title: "Document Required", message: "You must attach a PDF document to submit your project." });
       return;
@@ -486,7 +561,6 @@ const StudentDashboard = ({ isDarkMode, theme, session, showDialog }: any) => {
             <>
               <h3 className="text-xl font-extrabold tracking-tight mb-8 flex items-center gap-3"><div className={`p-2 rounded-xl ${theme.lightBg} ${theme.text} transition-colors duration-500`}><Upload size={20} /></div> Project Details</h3>
               
-              {/* NEW: DYNAMIC WARNING/INFO BANNERS */}
               {canSubmit ? (
                 <div className={`p-5 mb-8 rounded-2xl flex gap-4 text-sm font-medium items-start ${isDarkMode ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-amber-50 text-amber-800 border border-amber-200'}`}>
                   <AlertTriangle size={24} className="shrink-0 mt-0.5" />
@@ -530,7 +604,6 @@ const StudentDashboard = ({ isDarkMode, theme, session, showDialog }: any) => {
                 </div>
                 {me?.pdfUrl && !file && <p className="text-sm text-emerald-500 font-medium flex items-center gap-2 pl-2"><CheckCircle size={16}/> Active PDF on file. {canSubmit ? "Submitting a new file will overwrite it." : "Your file is locked for review."}</p>}
                 
-                {/* NEW: ONLY SHOW SUBMIT BUTTON IF THEY ARE ALLOWED TO */}
                 {canSubmit && (
                   <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} disabled={isSubmitting} type="submit" className={`w-full ${theme.bg} disabled:opacity-50 text-white font-bold py-4 rounded-[1.5rem] flex items-center justify-center gap-2 text-lg transition-colors duration-500 shadow-lg mt-4`}>
                     {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />} {isSubmitting ? "Uploading Securely..." : "Submit Project"}
