@@ -367,47 +367,48 @@ const SupervisorDashboard = ({ isDarkMode, theme, session, showDialog }: any) =>
         )}
       </AnimatePresence>
 
-      <GlassCard isDarkMode={isDarkMode} className="w-full flex justify-between items-center p-6 px-8">
-        <div>
+{/* responsive */}
+      <GlassCard isDarkMode={isDarkMode} className="w-full flex flex-col md:flex-row justify-between items-start md:items-center p-6 md:px-8 gap-5">
+        <div className="w-full">
           <h2 className="text-2xl font-extrabold tracking-tight flex items-center gap-3">
             <div className={`p-2 rounded-xl ${theme.lightBg} ${theme.text} transition-colors duration-500`}>
               <LayoutDashboard size={20} />
             </div>
             Supervisor Panel
           </h2>
-          <p className="font-medium opacity-60 mt-2 flex items-center gap-2">
-            Welcome, {session?.user?.name}
-            <span className="opacity-40 text-sm">|</span>
-            Your Code:
-            <span className={`font-mono px-2 py-0.5 rounded-md ${theme.lightBg} ${theme.text}`}>
-              {myMigrationCode}
+          <div className="font-medium opacity-60 mt-2 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+            <span>Welcome, {session?.user?.name}</span>
+            <span className="hidden sm:block opacity-40 text-sm">|</span>
+            <span>
+              Your Code: <span className={`font-mono px-2 py-0.5 rounded-md ${theme.lightBg} ${theme.text}`}>{myMigrationCode}</span>
             </span>
-          </p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        {/* Action Buttons Container */}
+        <div className="flex items-center gap-3 w-full md:w-auto pt-4 md:pt-0 border-t md:border-t-0 border-neutral-200 dark:border-neutral-800 transition-colors">
           <motion.button
             whileHover={{ scale: isExporting ? 1 : 1.05 }}
             whileTap={{ scale: isExporting ? 1 : 0.95 }}
             onClick={handleExportPDF}
             disabled={isExporting}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl font-bold transition-all ${isExporting ? 'opacity-60 cursor-not-allowed' : 'hover:opacity-90'} ${theme.bg} text-white shadow-md`}
+            className={`flex-1 md:flex-none justify-center flex items-center gap-2 px-3 sm:px-5 py-2.5 rounded-2xl font-bold text-sm sm:text-base transition-all ${isExporting ? 'opacity-60 cursor-not-allowed' : 'hover:opacity-90'} ${theme.bg} text-white shadow-md`}
           >
             {isExporting ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
-            {isExporting ? 'Downloading...' : 'Export Excel'}
+            <span className="whitespace-nowrap">{isExporting ? 'Downloading...' : 'Export Excel'}</span>
           </motion.button>
 
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => signOut({ redirect: false })}
-            className={`bg-red-500/10 hover:bg-red-500 ${isDarkMode ? 'text-red-400' : 'text-red-600'} hover:text-white px-6 py-2.5 rounded-2xl transition-all font-bold flex items-center gap-2`}
+            className={`flex-1 md:flex-none justify-center bg-red-500/10 hover:bg-red-500 ${isDarkMode ? 'text-red-400' : 'text-red-600'} hover:text-white px-3 sm:px-6 py-2.5 rounded-2xl transition-all font-bold text-sm sm:text-base flex items-center gap-2`}
           >
-            <LogIn size={20} className="rotate-180" /> Logout
+            <LogIn size={20} className="rotate-180" /> 
+            <span className="whitespace-nowrap">Logout</span>
           </motion.button>
         </div>
       </GlassCard>
-
       <GlassCard isDarkMode={isDarkMode} className="flex-1 p-8">
         <h3 className="text-xl font-extrabold tracking-tight mb-8">My Assigned Students <span className={`text-sm font-medium px-2 py-1 rounded-lg ml-2 ${theme.lightBg} ${theme.text}`}>{myStudents.length}</span></h3>
         {myStudents.length === 0 ? (
